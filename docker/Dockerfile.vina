@@ -1,0 +1,28 @@
+# BioChem MCP Gateway — Vina docking worker
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Change Ubuntu mirror to ArvanCloud
+RUN sed -i 's|archive.ubuntu.com|mirror.arvancloud.ir|g' /etc/apt/sources.list && \
+    sed -i 's|security.ubuntu.com|mirror.arvancloud.ir|g' /etc/apt/sources.list
+
+# System deps including python3-dev for Python.h and build-essential for prody
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3-pip \
+    python3-dev \
+    autodock-vina \
+    openbabel \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.vina.txt .
+RUN pip3 install --no-cache-dir -r requirements.vina.txt
+
+COPY . .
+
+CMD ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info", "-Q", "docking"]

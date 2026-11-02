@@ -1,0 +1,29 @@
+# BioChem MCP Gateway — API + Worker
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Change Debian mirror to ArvanCloud (accessible from Iran)
+RUN sed -i 's|deb.debian.org|mirror.arvancloud.ir|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|deb.debian.org|mirror.arvancloud.ir|g' /etc/apt/sources.list 2>/dev/null || true
+
+# System deps for RDKit, OpenMM, and general build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libxrender1 \
+    libxext6 \
+    libsm6 \
+    libexpat1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python deps (locked)
+COPY requirements.docker.txt .
+RUN pip install --no-cache-dir -r requirements.docker.txt
+
+# App code
+COPY . .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
